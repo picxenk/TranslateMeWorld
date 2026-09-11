@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ffffff">
+  <title>TranslateMe World · 세계의 언어로</title>
+  <style>
+    :root { color-scheme: light; --ink: #243339; --muted: #748087; --line: #e5eaed; --blue: #2768bd; --pale: #f0f6fd; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #fff; color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; }
+    button, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    button, select { color: inherit; }
+    button:disabled { cursor: default; opacity: .45; }
+    button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 3px solid #7bade9; outline-offset: 4px; }
+    button { -webkit-tap-highlight-color: transparent; }
+    [hidden] { display: none !important; }
+    header { max-width: 1440px; margin: auto; padding: 26px 40px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .brand { display: flex; gap: 11px; align-items: center; }
+    .brand svg { color: var(--blue); }
+    h1 { margin: 0; font-size: 19px; font-weight: 650; letter-spacing: -.6px; }
+    h1 span { font-weight: 400; color: var(--muted); }
+    .connection { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #c18b48; flex: none; }
+    .dot.connected { background: #4d9275; }
+    .text-button { padding: 5px 0; border: 0; background: none; color: var(--muted); font-size: 12px; }
+    .text-button:hover { color: var(--blue); }
+    main { max-width: 1440px; margin: auto; padding: 10px 40px 30px; }
+    .intro { text-align: center; padding: 17px 0 23px; }
+    .eyebrow { color: var(--blue); font-size: 10px; letter-spacing: 2.4px; font-weight: 650; }
+    h2 { margin: 12px 0 8px; font-size: 29px; letter-spacing: -1.2px; font-weight: 550; }
+    .intro p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .composer { max-width: 760px; margin: 0 auto 27px; border: 1px solid #dbe3e9; border-radius: 12px; box-shadow: 0 4px 18px #24333904; overflow: hidden; }
+    .composer:focus-within { border-color: #8cb3e3; }
+    .input-row { display: flex; align-items: center; padding: 10px 14px 4px 19px; gap: 12px; }
+    textarea { width: 100%; min-height: 63px; max-height: 180px; resize: vertical; border: none; background: none; padding: 12px 0; font-size: 17px; line-height: 1.6; color: var(--ink); }
+    textarea:focus { outline: none; }
+    textarea::placeholder { color: #a3adb4; }
+    .primary { border: 0; border-radius: 8px; padding: 12px 18px; background: var(--blue); color: #fff; white-space: nowrap; font-weight: 550; }
+    .primary:hover:not(:disabled) { background: #1b56a0; }
+    .composer-footer { padding: 7px 18px 11px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 11px; }
+    .source-options { display: flex; align-items: center; gap: 10px; }
+    select { border: 0; background: none; font-size: 11px; max-width: 160px; padding: 3px 0; }
+    .input-meta { display: flex; gap: 13px; align-items: center; }
+    .atlas { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .atlas-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; padding: 17px 0 5px; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+    .tabs button { background: none; border: 0; border-radius: 6px; padding: 7px 12px; font-size: 12px; color: var(--muted); }
+    .tabs button[aria-pressed="true"] { background: var(--pale); color: var(--blue); font-weight: 600; }
+    .map-meta { font-size: 11px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    #progressText { color: var(--blue); }
+    .map-scroll { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; }
+    .map-stage { position: relative; height: 535px; min-width: 960px; isolation: isolate; }
+    .map-stage > svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .land { fill: #edf1f3; stroke: #fff; stroke-width: 1.2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+    .graticule { stroke: #f3f5f6; stroke-width: 1; vector-effect: non-scaling-stroke; }
+    .ocean-label { fill: #bac4ca; font-size: 10px; letter-spacing: 4px; font-family: inherit; }
+    .leader { stroke: #c7d2dc; stroke-width: .8; }
+    .pin { fill: #88a2bc; }
+    .map-marker { position: absolute; width: 112px; height: 43px; padding: 5px 9px; background: #ffffffeb; border: 1px solid #e6ebef; border-radius: 6px; text-align: left; box-shadow: 0 2px 5px #24333903; overflow: hidden; }
+    .map-marker:hover, .map-marker:focus-visible { z-index: 3; border-color: #80a8d9; background: #fff; }
+    .map-marker.ready { border-color: #cedff3; }
+    .map-marker.loading { border-color: #88afe0; border-style: dashed; }
+    .map-marker.failed { border-color: #e7d5c5; }
+    .marker-country { display: block; color: #839099; font-size: 9px; line-height: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .marker-word { display: block; color: #8e9aa3; font-size: 11px; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ready .marker-word { color: var(--blue); }
+    .map-footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 10px 0 16px; color: #919ca4; font-size: 10px; line-height: 1.7; }
+    .legend { display: flex; gap: 7px; align-items: center; }
+    .legend-dot { width: 5px; height: 5px; background: var(--blue); border-radius: 50%; }
+    .notice { margin: 14px auto; padding: 13px 16px; background: #fff9f2; border: 1px solid #efdfca; border-radius: 8px; color: #845c30; font-size: 12px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+    details { margin: 0 auto 22px; max-width: 760px; font-size: 12px; color: var(--muted); line-height: 1.8; }
+    summary { cursor: pointer; color: var(--ink); }
+    details p { margin: 8px 0; }
+    code { background: #f2f4f6; padding: 3px 6px; border-radius: 4px; font-size: 11px; overflow-wrap: anywhere; }
+    .history { padding-top: 24px; }
+    .history-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .history h2 { font-size: 15px; letter-spacing: -.3px; margin: 0; font-weight: 600; }
+    #historyCount { font-size: 11px; font-weight: 400; color: var(--blue); margin-left: 6px; }
+    .history-subtitle { margin: 8px 0 17px; font-size: 11px; color: var(--muted); }
+    .history-empty { display: flex; align-items: center; justify-content: center; gap: 11px; min-height: 110px; border: 1px dashed #e0e6ea; border-radius: 8px; color: #919ca4; font-size: 12px; }
+    .empty-plus { width: 27px; height: 27px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; font-size: 18px; color: #a6b2bc; }
+    .history-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(235px, 1fr)); gap: 12px; }
+    .history-card { border: 1px solid var(--line); border-radius: 8px; padding: 15px; min-width: 0; }
+    .card-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; color: var(--muted); font-size: 11px; }
+    .card-top button { border: none; background: none; color: #8b969e; font-size: 18px; padding: 3px 7px; }
+    .history-word { display: block; width: 100%; text-align: start; border: 0; background: none; padding: 11px 0 7px; color: var(--blue); font-size: 20px; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .history-source { margin: 0; font-size: 12px; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+    footer { max-width: 1440px; padding: 20px 40px; margin: auto; color: #9da6ac; font-size: 10px; display: flex; justify-content: space-between; gap: 15px; }
+    dialog { width: min(460px, calc(100% - 32px)); max-height: 80vh; padding: 0; border: 1px solid var(--line); border-radius: 14px; color: var(--ink); box-shadow: 0 18px 70px #20364c25; }
+    dialog::backdrop { background: #24333935; backdrop-filter: blur(2px); }
+    .dialog-head { display: flex; align-items: center; justify-content: space-between; padding: 22px 24px 16px; border-bottom: 1px solid var(--line); }
+    .dialog-head h2 { margin: 0; font-size: 18px; letter-spacing: -.4px; }
+    .close { border: 0; background: #f4f6f8; width: 30px; height: 30px; border-radius: 50%; font-size: 21px; color: var(--muted); }
+    .dialog-source { padding: 16px 24px; background: #fafbfc; font-size: 12px; color: var(--muted); }
+    .dialog-source p { color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; margin: 7px 0 0; }
+    .translation-item { padding: 20px 24px; border-top: 1px solid var(--line); display: flex; align-items: flex-start; gap: 18px; }
+    .translation-content { flex: 1; min-width: 0; }
+    .translation-label { font-size: 11px; color: var(--muted); }
+    .model-note { margin: 8px 0 0; color: #9c6536; font-size: 11px; line-height: 1.7; }
+    .translation-text { margin: 10px 0 0; font-size: 24px; line-height: 1.5; color: var(--blue); overflow-wrap: anywhere; white-space: pre-wrap; }
+    .translation-text.pending { font-size: 13px; color: var(--muted); }
+    .translation-text.error { color: #9c6536; font-size: 12px; }
+    .speech-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .speech-button, .google-link, .google-source-link { border: 1px solid #d2e1f3; border-radius: 6px; padding: 7px 10px; background: #fff; color: var(--blue); font-size: 12px; }
+    .google-link, .google-source-link { text-decoration: none; }
+    .google-source-link { display: inline-block; margin-top: 8px; }
+    .speech-button[aria-pressed="true"] { background: var(--pale); }
+    .speech-hint { color: var(--muted); font-size: 11px; line-height: 1.6; }
+    #speechStatus { margin: 0; padding: 12px 24px; color: #9c6536; background: #fff9f2; font-size: 12px; line-height: 1.7; }
+    .add-button { width: 34px; height: 34px; flex: none; border: 1px solid #d2e1f3; border-radius: 50%; background: var(--pale); color: var(--blue); font-size: 22px; }
+    .add-button.saved { font-size: 13px; }
+    .dialog-note { margin: 0; padding: 14px 24px; background: #fafbfc; color: var(--muted); font-size: 11px; line-height: 1.7; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); width: max-content; background: #243339; color: #fff; border-radius: 8px; padding: 12px 20px; font-size: 12px; z-index: 10; box-shadow: 0 4px 20px #24333920; }
+    @media (max-width: 700px) {
+      header { padding: 20px; align-items: flex-start; }
+      h1 { font-size: 17px; }
+      .connection { max-width: 135px; flex-wrap: wrap; justify-content: flex-end; gap: 5px; font-size: 10px; }
+      #modelStatus { display: none; }
+      main { padding: 0 20px 20px; }
+      .intro { padding: 20px 0; }
+      h2 { font-size: 25px; }
+      .intro p { font-size: 12px; }
+      .composer { margin-bottom: 20px; }
+      .input-row { padding: 9px 10px 2px 14px; gap: 8px; }
+      textarea { font-size: 15px; }
+      .primary { padding: 11px 13px; font-size: 12px; }
+      .composer-footer { padding: 8px 13px 12px; }
+      .shortcut { display: none; }
+      .source-options { gap: 5px; }
+      .atlas-toolbar { align-items: flex-start; flex-direction: column; gap: 8px; }
+      .tabs button { padding: 7px 11px; }
+      .map-meta { padding-left: 11px; font-size: 10px; }
+      .map-stage { min-width: 780px; height: 500px; }
+      .map-footer { align-items: flex-start; flex-direction: column; gap: 3px; }
+      .history { padding-top: 20px; }
+      .history-empty { padding: 20px; font-size: 11px; line-height: 1.7; }
+      footer { padding: 15px 20px; font-size: 9px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <svg width="27" height="27" viewBox="0 0 28 28" fill="none" aria-hidden="true"><circle cx="14" cy="14" r="11" stroke="currentColor" stroke-width="1.4"/><ellipse cx="14" cy="14" rx="5" ry="11" stroke="currentColor" stroke-width="1.2"/><path d="M3 14h22M5 8h18M5 20h18" stroke="currentColor" stroke-width="1.2"/></svg>
+      <h1>TranslateMe <span>World</span></h1>
+    </div>
+    <div class="connection" role="status"><span class="dot" id="statusDot"></span><span id="statusText">Ollama 확인 중</span><span id="modelStatus"></span><button class="text-button" id="connectionBtn" type="button" aria-label="Ollama 연결 다시 확인">재연결</button></div>
+  </header>
+  <main>
+    <section class="intro" aria-labelledby="introTitle">
+      <span class="eyebrow">A WORLD OF WORDS</span>
+      <h2 id="introTitle">하나의 문장, 세계의 언어로.</h2>
+      <p>한국어 또는 영어를 입력하고, 지도 위에서 새로운 언어를 만나보세요.</p>
+    </section>
+    <form class="composer" id="translateForm">
+      <div class="input-row">
+        <textarea id="sourceText" rows="1" maxlength="1000" aria-label="번역할 한국어 또는 영어" placeholder="어떤 말을 전하고 싶나요?"></textarea>
+        <button class="primary" id="translateBtn" type="submit" disabled>번역하기 <span aria-hidden="true">↗</span></button>
+      </div>
+      <div class="composer-footer">
+        <div class="source-options"><select id="sourceLang" aria-label="입력 언어"><option value="auto">한국어 / 영어 자동 감지</option><option value="ko">한국어</option><option value="en">영어</option></select><span id="detectedLanguage"></span></div>
+        <div class="input-meta"><span class="shortcut">⌘ / Ctrl + Enter</span><span id="charCount">0 / 1,000</span></div>
+      </div>
+    </form>
+    <details id="connectionHelp" hidden>
+      <summary>Ollama 연결 도움말</summary>
+      <p id="connectionError"></p>
+      <p>Ollama를 실행한 뒤 모델을 설치하세요: <code>ollama pull translategemma:4b</code></p>
+      <p>파일을 직접 열었다면 프로젝트 폴더에서 <code>python3 -m http.server 8000</code>을 실행하고 <a href="http://localhost:8000">localhost:8000</a>에 접속하세요.</p>
+      <p>CORS 오류가 계속되면 현재 페이지의 출처만 허용하고 Ollama를 완전히 종료한 뒤 다시 실행하세요.</p>
+      <p>macOS: <code id="macCors"></code></p><p>Windows: <code id="windowsCors"></code></p>
+    </details>
+    <p class="notice" id="notice" role="status" hidden></p>
+    <section class="atlas" aria-label="세계 번역 지도">
+      <div class="atlas-toolbar">
+        <nav class="tabs" aria-label="지도 지역"><button type="button" data-region="world" aria-pressed="true">세계 전체</button><button type="button" data-region="northAmerica" aria-pressed="false">북미</button><button type="button" data-region="southAmerica" aria-pressed="false">남미</button><button type="button" data-region="europe" aria-pressed="false">유럽</button><button type="button" data-region="asia" aria-pressed="false">아시아</button><button type="button" data-region="africa" aria-pressed="false">아프리카</button></nav>
+        <div class="map-meta"><span id="languageCount"></span><span id="progressText" role="status">번역할 문장을 입력하세요</span><button class="text-button" id="retryBtn" type="button" hidden>실패한 번역 재시도</button><button class="text-button" id="cancelBtn" type="button" hidden>중지</button></div>
+      </div>
+      <div class="map-scroll" id="mapScroll" tabindex="0" role="region" aria-label="언어 지도. 좁은 화면에서는 좌우로 스크롤할 수 있습니다.">
+        <div class="map-stage" id="mapStage"><svg id="worldMap" aria-hidden="true" preserveAspectRatio="none"></svg><svg id="mapLeaders" aria-hidden="true"></svg><div id="mapMarkers"></div></div>
+      </div>
+      <div class="map-footer"><span class="legend"><span class="legend-dot"></span>지도 위 번역어를 클릭하면 전체 번역을 볼 수 있어요. 작은 화면에서는 좌우로 이동하세요.</span><span>주요 사용 국가 기준 · 같은 언어의 번역은 공유하며 지역별 표현 차이는 반영하지 않습니다.</span></div>
+    </section>
+    <section class="history" aria-labelledby="historyTitle">
+      <div class="history-heading"><h2 id="historyTitle">나의 언어 히스토리 <span id="historyCount">0</span></h2><button class="text-button" id="clearHistory" type="button" hidden>전체 삭제</button></div>
+      <p class="history-subtitle">마음에 드는 번역을 팝업의 + 버튼으로 모아보세요. 이 브라우저에만 저장됩니다.</p>
+      <div class="history-empty" id="historyEmpty"><span class="empty-plus" aria-hidden="true">+</span><span>아직 모아둔 언어가 없어요. 지도에서 첫 번째 언어를 발견해 보세요.</span></div>
+      <div class="history-list" id="historyList"></div>
+    </section>
+  </main>
+  <footer><span>내 컴퓨터에서 번역하는 작은 세계지도</span><span>Powered by TranslateGemma &amp; Ollama</span></footer>
+  <dialog id="translationDialog" aria-labelledby="dialogTitle">
+    <div class="dialog-head"><h2 id="dialogTitle"></h2><button class="close" id="closeDialog" type="button" aria-label="팝업 닫기" autofocus>×</button></div>
+    <div class="dialog-source"><span id="dialogSourceLanguage"></span><p id="dialogSourceText" dir="auto"></p></div>
+    <p id="speechStatus" role="status" hidden></p>
+    <div id="dialogTranslations"></div><p class="dialog-note">듣기는 이 기기의 로컬 음성만 사용합니다. + 버튼으로 번역을 히스토리에 저장하세요.</p>
+    <p class="dialog-note" id="googleNotice">Google 버튼을 누르면 해당 번역문이 Google에 전달됩니다. 원문 번역 버튼은 번역문 대신 원문을 전송합니다. 새 탭에서 스피커 버튼으로 들어보세요. 음성 지원 여부는 언어에 따라 다릅니다.</p>
+  </dialog>
+  <div class="toast" id="toast" role="status" hidden></div>
+  <script>
+    "use strict";
+    const OLLAMA_URL = "http://localhost:11434";
+    const MODEL = "translategemma:4b";
+    const HISTORY_KEY = "translateme-world-history";
+    // Default locale per language; countries below can share the same translation.
+    const LANGUAGES = [
+      ["ko", "한국어", "Korean", "KR"], ["en", "영어", "English", "GB"],
+      ["ja", "일본어", "Japanese", "JP"], ["zh", "중국어", "Chinese", "CN"],
+      ["fr", "프랑스어", "French", "FR"], ["de", "독일어", "German", "DE"],
+      ["es", "스페인어", "Spanish", "ES"], ["it", "이탈리아어", "Italian", "IT"],
+      ["pt", "포르투갈어", "Portuguese", "PT"], ["ru", "러시아어", "Russian", "RU"],
+      ["hi", "힌디어", "Hindi", "IN"], ["ar", "아랍어", "Arabic", "SA"],
+      ["bn", "벵골어", "Bengali", "BD"], ["id", "인도네시아어", "Indonesian", "ID"],
+      ["vi", "베트남어", "Vietnamese", "VN"], ["th", "태국어", "Thai", "TH"],
+      ["tr", "튀르키예어", "Turkish", "TR"], ["fa", "페르시아어", "Persian", "IR"],
+      ["he", "히브리어", "Hebrew", "IL"], ["uk", "우크라이나어", "Ukrainian", "UA"],
+      ["pl", "폴란드어", "Polish", "PL"], ["nl", "네덜란드어", "Dutch", "NL"],
+      ["cs", "체코어", "Czech", "CZ"], ["sk", "슬로바키아어", "Slovak", "SK"],
+      ["sl", "슬로베니아어", "Slovenian", "SI"], ["hr", "크로아티아어", "Croatian", "HR"],
+      ["sr", "세르비아어", "Serbian", "RS"], ["bg", "불가리아어", "Bulgarian", "BG"],
+      ["ro", "루마니아어", "Romanian", "RO"], ["hu", "헝가리어", "Hungarian", "HU"],
+      ["el", "그리스어", "Greek", "GR"], ["da", "덴마크어", "Danish", "DK"],
+      ["sv", "스웨덴어", "Swedish", "SE"], ["no", "노르웨이어", "Norwegian", "NO"],
+      ["fi", "핀란드어", "Finnish", "FI"], ["is", "아이슬란드어", "Icelandic", "IS"],
+      ["et", "에스토니아어", "Estonian", "EE"], ["lv", "라트비아어", "Latvian", "LV"],
+      ["lt", "리투아니아어", "Lithuanian", "LT"], ["ms", "말레이어", "Malay", "MY"],
+      ["fil", "필리핀어", "Filipino", "PH"], ["ta", "타밀어", "Tamil", "IN"],
+      ["te", "텔루구어", "Telugu", "IN"], ["kn", "칸나다어", "Kannada", "IN"],
+      ["ml", "말라얄람어", "Malayalam", "IN"], ["mr", "마라티어", "Marathi", "IN"],
+      ["ur", "우르두어", "Urdu", "PK"], ["gu", "구자라트어", "Gujarati", "IN"],
+      ["pa", "펀자브어", "Punjabi", "IN"], ["af", "아프리칸스어", "Afrikaans", "ZA"],
+      ["sw", "스와힐리어", "Swahili", "KE"], ["zu", "줄루어", "Zulu", "ZA"],
+      ["am", "암하라어", "Amharic", "ET", true], ["ha", "하우사어", "Hausa", "NG", true],
+      ["yo", "요루바어", "Yoruba", "NG", true], ["ig", "이그보어", "Igbo", "NG", true]
+    ].map(([code, name, english, country, experimental = false]) => ({ code, name, english, country, experimental }));
+    const COUNTRIES = [
+      ["KR", "대한민국", 128, 36, "asia"], ["GB", "영국", -2, 54, "europe"],
+      ["JP", "일본", 138, 37, "asia"], ["CN", "중국", 105, 35, "asia"],
+      ["FR", "프랑스", 2, 47, "europe"], ["DE", "독일", 10, 51, "europe"],
+      ["ES", "스페인", -4, 40, "europe"], ["IT", "이탈리아", 12, 43, "europe"],
+      ["PT", "포르투갈", -8, 39, "europe"], ["RU", "러시아", 90, 61, "asia"],
+      ["IN", "인도", 79, 22, "asia"], ["SA", "사우디아라비아", 45, 24, "asia"],
+      ["BD", "방글라데시", 90, 24, "asia"], ["ID", "인도네시아", 116, -3, "asia"],
+      ["VN", "베트남", 107, 16, "asia"], ["TH", "태국", 101, 15, "asia"],
+      ["TR", "튀르키예", 35, 39, "asia"], ["IR", "이란", 54, 32, "asia"],
+      ["IL", "이스라엘", 35, 31, "asia"], ["UA", "우크라이나", 31, 49, "europe"],
+      ["PL", "폴란드", 19, 52, "europe"], ["NL", "네덜란드", 5, 52, "europe"],
+      ["CZ", "체코", 15, 50, "europe"], ["SK", "슬로바키아", 19, 49, "europe"],
+      ["SI", "슬로베니아", 15, 46, "europe"], ["HR", "크로아티아", 16, 45, "europe"],
+      ["RS", "세르비아", 21, 44, "europe"], ["BG", "불가리아", 25, 43, "europe"],
+      ["RO", "루마니아", 25, 46, "europe"], ["HU", "헝가리", 19, 47, "europe"],
+      ["GR", "그리스", 23, 39, "europe"], ["DK", "덴마크", 10, 56, "europe"],
+      ["SE", "스웨덴", 15, 63, "europe"], ["NO", "노르웨이", 9, 63, "europe"],
+      ["FI", "핀란드", 26, 64, "europe"], ["IS", "아이슬란드", -19, 65, "europe"],
+      ["EE", "에스토니아", 26, 59, "europe"], ["LV", "라트비아", 25, 57, "europe"],
+      ["LT", "리투아니아", 24, 55, "europe"], ["MY", "말레이시아", 103, 4, "asia"],
+      ["PH", "필리핀", 123, 12, "asia"], ["PK", "파키스탄", 69, 30, "asia"],
+      ["ZA", "남아프리카공화국", 25, -29, "africa"], ["KE", "케냐", 38, 0, "africa"],
+      ["US", "미국", -99, 39, "northAmerica", ["en", "es"]],
+      ["CA", "캐나다", -105, 58, "northAmerica", ["en", "fr"]],
+      ["MX", "멕시코", -102, 24, "northAmerica", ["es"]],
+      ["GT", "과테말라", -90, 15.5, "northAmerica", ["es"]],
+      ["BZ", "벨리즈", -88.7, 17.2, "northAmerica", ["en", "es"]],
+      ["HN", "온두라스", -86.5, 14.8, "northAmerica", ["es"]],
+      ["SV", "엘살바도르", -88.9, 13.7, "northAmerica", ["es"]],
+      ["NI", "니카라과", -85, 13, "northAmerica", ["es"]],
+      ["CR", "코스타리카", -84, 10, "northAmerica", ["es"]],
+      ["PA", "파나마", -80, 8.5, "northAmerica", ["es"]],
+      ["CU", "쿠바", -79.5, 22, "northAmerica", ["es"]],
+      ["DO", "도미니카공화국", -70.5, 19, "northAmerica", ["es"]],
+      ["JM", "자메이카", -77.3, 18.1, "northAmerica", ["en"]],
+      ["HT", "아이티", -72.3, 19, "northAmerica", ["fr"]],
+      ["BR", "브라질", -52, -14, "southAmerica", ["pt"]],
+      ["AR", "아르헨티나", -64, -35, "southAmerica", ["es"]],
+      ["CL", "칠레", -71, -33, "southAmerica", ["es"]],
+      ["PE", "페루", -75, -10, "southAmerica", ["es"]],
+      ["CO", "콜롬비아", -73, 4, "southAmerica", ["es"]],
+      ["VE", "베네수엘라", -66, 8, "southAmerica", ["es"]],
+      ["EC", "에콰도르", -78, -1.5, "southAmerica", ["es"]],
+      ["BO", "볼리비아", -64, -17, "southAmerica", ["es"]],
+      ["PY", "파라과이", -58, -23, "southAmerica", ["es"]],
+      ["UY", "우루과이", -56, -33, "southAmerica", ["es"]],
+      ["GY", "가이아나", -59, 5, "southAmerica", ["en"]],
+      ["SR", "수리남", -56, 4, "southAmerica", ["nl"]],
+      ["ET", "에티오피아", 40, 9, "africa"],
+      ["TZ", "탄자니아", 35, -6, "africa", ["sw"]],
+      ["UG", "우간다", 32, 1, "africa", ["sw"]],
+      ["CD", "콩고민주공화국", 25, -3, "africa", ["sw"]],
+      ["NG", "나이지리아", 8, 9, "africa"],
+      ["NE", "니제르", 9, 17, "africa", ["ha"]],
+      ["GH", "가나", -1, 8, "africa", ["ha"]],
+      ["BJ", "베냉", 2.3, 9.3, "africa", ["yo"]]
+    ].map(([code, name, lon, lat, region, languageCodes]) => ({ code, name, lon, lat, region, languages: languageCodes ? languageCodes.map(code => LANGUAGES.find(language => language.code === code)) : LANGUAGES.filter(language => language.country === code) }));
+    const REGIONS = { world: [-180, 180, -58, 84], northAmerica: [-170, -45, 5, 80], southAmerica: [-90, -30, -58, 15], europe: [-30, 48, 30, 74], asia: [25, 155, -15, 75], africa: [-25, 60, -40, 40] };
+    // Simplified, self-contained coastlines, not political boundaries.
+    const LAND = [
+      [[-168,72],[-151,71],[-141,69],[-130,70],[-123,74],[-110,73],[-99,78],[-85,76],[-78,70],[-67,68],[-61,60],[-55,53],[-61,47],[-69,47],[-74,41],[-80,33],[-81,25],[-85,30],[-91,29],[-97,26],[-97,21],[-90,19],[-87,21],[-84,16],[-78,9],[-82,8],[-88,15],[-96,16],[-105,20],[-111,28],[-115,29],[-117,33],[-123,40],[-127,50],[-136,59],[-146,60],[-154,58],[-164,55],[-169,60],[-165,65]],
+      [[-73,60],[-60,61],[-47,60],[-41,65],[-25,70],[-19,78],[-31,82],[-49,83],[-62,80],[-68,72]],
+      [[-81,12],[-73,11],[-67,10],[-60,7],[-52,4],[-50,0],[-44,-3],[-35,-6],[-35,-12],[-40,-22],[-48,-28],[-53,-34],[-59,-39],[-66,-55],[-72,-52],[-75,-43],[-73,-32],[-71,-20],[-76,-12],[-81,-5],[-79,2]],
+      [[-10,36],[-9,43],[-2,44],[-1,48],[-5,49],[2,51],[7,54],[8,58],[5,59],[5,63],[12,68],[20,71],[29,71],[32,68],[42,69],[50,68],[59,71],[68,73],[80,72],[91,77],[108,77],[119,74],[132,71],[145,72],[160,70],[178,66],[179,59],[166,60],[160,55],[156,51],[151,46],[145,48],[141,54],[138,54],[140,46],[135,43],[130,42],[129,35],[126,34],[125,40],[121,40],[122,35],[120,31],[121,25],[115,22],[108,21],[108,16],[109,12],[105,9],[102,13],[100,13],[100,7],[104,2],[101,1],[98,8],[97,16],[93,20],[90,22],[87,21],[85,17],[80,10],[77,8],[73,16],[72,21],[68,24],[61,25],[57,25],[56,20],[51,16],[44,12],[41,16],[36,29],[33,31],[35,36],[31,36],[27,37],[26,40],[29,41],[33,42],[37,42],[40,45],[35,46],[30,46],[29,41],[24,41],[24,35],[21,37],[19,41],[16,40],[17,38],[15,38],[12,43],[8,44],[3,42],[0,39],[-1,37]],
+      [[-17,21],[-16,28],[-10,31],[-6,36],[3,37],[11,37],[12,33],[20,32],[25,32],[32,31],[35,24],[39,17],[43,12],[51,12],[49,6],[44,1],[41,-3],[40,-10],[35,-18],[34,-25],[29,-31],[24,-35],[18,-34],[15,-28],[12,-18],[13,-10],[9,-2],[9,4],[5,5],[0,5],[-5,5],[-10,7],[-16,12]],
+      [[112,-22],[114,-27],[115,-34],[122,-34],[130,-32],[137,-35],[140,-38],[147,-39],[153,-28],[153,-23],[147,-18],[143,-12],[137,-12],[135,-15],[129,-14],[125,-15],[122,-18],[115,-20]],
+      [[-8,50],[-5,50],[-2,53],[0,53],[-2,56],[-3,59],[-6,58],[-5,55]],
+      [[-10,51],[-6,52],[-6,55],[-9,55]], [[-24,64],[-21,67],[-15,66],[-13,64],[-19,63]],
+      [[130,31],[132,34],[135,34],[139,36],[141,41],[140,42],[137,37],[133,35]], [[140,42],[144,46],[146,44],[143,42]],
+      [[120,22],[122,25],[121,26],[120,24]], [[119,18],[121,19],[123,14],[122,12],[120,14]], [[123,11],[126,9],[126,6],[123,7]],
+      [[95,5],[99,2],[106,-5],[104,-6],[100,-2]], [[105,-6],[114,-7],[115,-9],[108,-8]], [[109,1],[112,4],[117,7],[119,1],[116,-4],[111,-3]], [[119,-5],[120,1],[124,2],[125,0],[122,-1],[122,-5]],
+      [[131,-1],[140,-2],[149,-6],[150,-10],[143,-9],[137,-5],[132,-4]], [[47,-13],[50,-16],[48,-24],[44,-26],[44,-20]], [[80,10],[82,7],[80,6]],
+      [[166,-34],[173,-39],[175,-41],[178,-37],[177,-35],[173,-34]], [[173,-41],[172,-44],[167,-47],[166,-45]], [[145,-41],[149,-41],[147,-44]],
+      [[-85,23],[-78,22],[-74,20],[-79,20]], [[-73,19],[-68,19],[-69,18],[-73,18]]
+    ];
+    const $ = id => document.getElementById(id);
+    const svgNS = "http://www.w3.org/2000/svg";
+    let activeModel = MODEL;
+    let region = "world";
+    let results = new Map();
+    let snapshot = null;
+    let activeRun = null;
+    let selectedCountry = null;
+    let selectedHistory = null;
+    let history = [];
+    let toastTimer;
+    let connectionCheck = null;
+    const speech = typeof window.SpeechSynthesisUtterance === "function" ? window.speechSynthesis : null;
+    let activeSpeech = null;
+
+    function element(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+    function svgElement(tag, attributes) {
+      const node = document.createElementNS(svgNS, tag);
+      for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
+      return node;
+    }
+    function flag(code) { return String.fromCodePoint(...[...code].map(letter => 127397 + letter.charCodeAt(0))); }
+    function sourceCode() { return $("sourceLang").value === "auto" ? (/[\u1100-\u11ff\u3130-\u318f\uac00-\ud7af]/.test($("sourceText").value) ? "ko" : "en") : $("sourceLang").value; }
+    function showToast(message) {
+      clearTimeout(toastTimer);
+      $("toast").textContent = message;
+      $("toast").hidden = false;
+      toastTimer = setTimeout(() => { $("toast").hidden = true; }, 3000);
+    }
+    function notice(message = "") { $("notice").textContent = message; $("notice").hidden = !message; }
+
+    function localVoice(language) {
+      if (!speech) return null;
+      // Browsers expose regional tags and sometimes legacy language codes.
+      const normalize = tag => tag.toLowerCase().replace(/_/g, "-").replace(/^(iw|tl|nb)(?=-|$)/, code => ({ iw: "he", tl: "fil", nb: "no" })[code]);
+      const voices = speech.getVoices().filter(voice => voice.localService === true && normalize(voice.lang).split("-")[0] === language.code);
+      const country = selectedHistory?.country || selectedCountry?.code || language.country;
+      return voices.find(voice => normalize(voice.lang) === `${language.code}-${country.toLowerCase()}`) || voices[0] || null;
+    }
+    function updateSpeechButtons() {
+      for (const button of document.querySelectorAll("[data-speech-code]")) {
+        const language = LANGUAGES.find(language => language.code === button.dataset.speechCode);
+        const voice = localVoice(language);
+        const playing = activeSpeech?.code === language.code;
+        button.disabled = !playing && !voice;
+        button.textContent = playing ? "중지" : "듣기";
+        button.setAttribute("aria-pressed", String(playing));
+        button.setAttribute("aria-label", `${language.name} ${playing ? "음성 중지" : "번역 듣기"}`);
+        const hint = !speech ? "이 브라우저는 음성 재생을 지원하지 않습니다." : !voice ? "이 언어의 로컬 음성이 없습니다. 기기 음성 설정을 확인하세요." : "";
+        button.title = hint || `로컬 음성: ${voice?.name || language.name}`;
+        button.nextElementSibling.textContent = hint;
+        button.nextElementSibling.hidden = !hint;
+      }
+    }
+    function stopSpeech() {
+      if (activeSpeech) {
+        activeSpeech = null;
+        speech.cancel();
+      }
+      $("speechStatus").hidden = true;
+      $("speechStatus").textContent = "";
+      updateSpeechButtons();
+    }
+    function speakTranslation(language, text) {
+      const wasPlaying = activeSpeech?.code === language.code && activeSpeech.utterance.text === text;
+      stopSpeech();
+      if (wasPlaying) return;
+      const voice = localVoice(language);
+      if (!voice || !text.trim()) { updateSpeechButtons(); return; }
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.voice = voice;
+      utterance.lang = voice.lang;
+      activeSpeech = { code: language.code, utterance };
+      const finish = error => {
+        // A canceled utterance can report its end/error after another one starts.
+        if (activeSpeech?.utterance !== utterance) return;
+        activeSpeech = null;
+        updateSpeechButtons();
+        if (error) {
+          $("speechStatus").textContent = "음성을 재생하지 못했습니다. 기기의 음성 설치 상태와 브라우저 설정을 확인한 뒤 다시 시도해 주세요.";
+          $("speechStatus").hidden = false;
+        }
+      };
+      utterance.onend = () => finish(false);
+      utterance.onerror = () => finish(true);
+      updateSpeechButtons();
+      try { speech.speak(utterance); } catch { finish(true); }
+    }
+
+    function renderMap() {
+      const countries = COUNTRIES.filter(country => region === "world" || country.region === region);
+      const width = $("mapStage").clientWidth;
+      const columns = Math.floor(width / 120);
+      // Grow the canvas when the world has more labels than the mobile grid can hold.
+      $("mapStage").style.minHeight = `${Math.ceil(countries.length / columns) * 49 + 16}px`;
+      const height = $("mapStage").clientHeight;
+      const [west, east, south, north] = REGIONS[region];
+      const project = (lon, lat) => [(lon - west) / (east - west) * width, (north - lat) / (north - south) * height];
+      const map = $("worldMap");
+      map.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      map.replaceChildren();
+      for (let lat = -30; lat <= 60; lat += 30) {
+        const y = project(0, lat)[1];
+        map.append(svgElement("line", { x1: 0, y1: y, x2: width, y2: y, class: "graticule" }));
+      }
+      for (const polygon of LAND) map.append(svgElement("polygon", { points: polygon.map(([lon, lat]) => project(lon, lat).join(",")).join(" "), class: "land" }));
+      if (region === "world") {
+        for (const [label, lon, lat] of [["PACIFIC OCEAN", -148, 5], ["ATLANTIC OCEAN", -48, -10], ["INDIAN OCEAN", 67, -28]]) {
+          const [x, y] = project(lon, lat);
+          const text = svgElement("text", { x, y, "text-anchor": "middle", class: "ocean-label" });
+          text.textContent = label;
+          map.append(text);
+        }
+      }
+      const leaders = $("mapLeaders");
+      leaders.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      leaders.replaceChildren();
+      $("mapMarkers").replaceChildren();
+      // Reserved slots prevent overlap even on mobile; swaps shorten crossing callout lines.
+      const rows = Math.floor(height / 49);
+      const slots = Array.from({ length: columns * rows }, (_, index) => ({
+        x: (width - columns * 120) / 2 + 60 + (index % columns) * 120,
+        y: (height - rows * 49) / 2 + 24.5 + Math.floor(index / columns) * 49,
+        point: null
+      }));
+      const points = countries.map(country => { const [px, py] = project(country.lon, country.lat); return { country, px, py }; });
+      const distance = (point, slot) => (point.px - slot.x) ** 2 + (point.py - 25 - slot.y) ** 2;
+      for (const point of points) {
+        const slot = slots.filter(slot => !slot.point).sort((a, b) => distance(point, a) - distance(point, b))[0];
+        slot.point = point;
+      }
+      for (let pass = 0; pass < 8; pass++) {
+        let changed = false;
+        for (let i = 0; i < slots.length; i++) for (let j = i + 1; j < slots.length; j++) {
+          const a = slots[i], b = slots[j];
+          const before = (a.point ? distance(a.point, a) : 0) + (b.point ? distance(b.point, b) : 0);
+          const after = (a.point ? distance(a.point, b) : 0) + (b.point ? distance(b.point, a) : 0);
+          if (after + 1 < before) { [a.point, b.point] = [b.point, a.point]; changed = true; }
+        }
+        if (!changed) break;
+      }
+      for (const best of slots.filter(slot => slot.point)) {
+        const { country, px, py } = best.point;
+        leaders.append(svgElement("line", { x1: px, y1: py, x2: best.x, y2: best.y, class: "leader" }), svgElement("circle", { cx: px, cy: py, r: 2.4, class: "pin" }));
+        const button = element("button", "map-marker");
+        button.type = "button";
+        button.id = `marker-${country.code}`;
+        button.style.left = `${best.x - 56}px`;
+        button.style.top = `${best.y - 21.5}px`;
+        button.setAttribute("aria-haspopup", "dialog");
+        button.append(element("span", "marker-country", `${flag(country.code)} ${country.name}`), element("span", "marker-word"));
+        button.addEventListener("click", () => openCountry(country));
+        $("mapMarkers").append(button);
+        updateMarker(country);
+      }
+    }
+    function updateMarker(country) {
+      const marker = $(`marker-${country.code}`);
+      if (!marker) return;
+      const ready = country.languages.find(language => results.get(language.code)?.status === "ready");
+      const loading = country.languages.some(language => results.get(language.code)?.status === "loading");
+      const failed = country.languages.some(language => results.get(language.code)?.status === "error");
+      marker.className = `map-marker${ready ? " ready" : loading ? " loading" : failed ? " failed" : ""}`;
+      const extra = country.languages.length > 1 ? ` +${country.languages.length - 1}` : "";
+      const word = ready ? results.get(ready.code).text : loading ? "번역 중…" : failed ? "번역 실패 · 다시 시도" : snapshot ? "번역 대기 중" : country.languages[0].name;
+      marker.lastChild.textContent = word + extra;
+      marker.lastChild.dir = "auto";
+      marker.lastChild.lang = ready ? ready.code : "ko";
+      marker.title = `${country.name} · ${word}${extra}`;
+      marker.setAttribute("aria-label", `${country.name}, ${country.languages.map(language => language.name).join(", ")}: ${word}. 번역 팝업 열기`);
+    }
+    function openCountry(country) {
+      stopSpeech();
+      selectedCountry = country;
+      selectedHistory = null;
+      renderDialog();
+      $("translationDialog").showModal();
+    }
+    function isSaved(code, original, translation) { return history.some(item => item.code === code && item.source === original.text && item.sourceCode === original.code && item.translation === translation); }
+    function renderDialog() {
+      const original = selectedHistory ? { text: selectedHistory.source, code: selectedHistory.sourceCode } : snapshot;
+      const country = selectedHistory ? COUNTRIES.find(item => item.code === selectedHistory.country) : selectedCountry;
+      if (!country) return;
+      $("dialogTitle").textContent = `${flag(country.code)} ${country.name}`;
+      $("dialogSourceLanguage").textContent = original ? `${original.code === "ko" ? "한국어" : "영어"} 원문` : "새로운 언어를 만나보세요";
+      $("dialogSourceText").textContent = original?.text || "상단에 한국어 또는 영어를 입력하고 번역하기를 눌러주세요.";
+      $("dialogSourceText").lang = original?.code || "ko";
+      const list = $("dialogTranslations");
+      const focusedLanguage = list.contains(document.activeElement) ? document.activeElement.dataset.code : null;
+      const focusedAction = document.activeElement.dataset.action;
+      list.replaceChildren();
+      const languages = selectedHistory ? LANGUAGES.filter(language => language.code === selectedHistory.code) : country.languages;
+      for (const language of languages) {
+        const result = selectedHistory ? { status: "ready", text: selectedHistory.translation } : results.get(language.code);
+        const item = element("div", "translation-item");
+        const content = element("div", "translation-content");
+        content.append(element("span", "translation-label", `${language.name} · ${language.english}`));
+        if (language.experimental) {
+          content.append(element("p", "model-note", "실험적 추가 언어 · 모델이 다른 언어로 응답할 수 있습니다. Google에서 원문으로 확인해 주세요."));
+          if (original) {
+            const googleSource = element("a", "google-source-link", "Google에서 원문 번역 ↗");
+            const url = new URL("https://translate.google.com/");
+            url.search = new URLSearchParams({ sl: original.code, tl: language.code, text: original.text, op: "translate" }).toString();
+            googleSource.href = url.href;
+            googleSource.target = "_blank";
+            googleSource.rel = "noopener noreferrer";
+            googleSource.dataset.code = language.code;
+            googleSource.dataset.action = "google-source";
+            googleSource.setAttribute("aria-label", `${language.name} Google에서 원문 번역 (새 탭)`);
+            googleSource.setAttribute("aria-describedby", "googleNotice");
+            googleSource.addEventListener("click", stopSpeech);
+            content.append(googleSource);
+          }
+        }
+        const value = element("p", "translation-text");
+        value.dir = "auto";
+        if (result?.status === "ready") { value.textContent = result.text; value.lang = language.code; }
+        else { value.classList.add(result?.status === "error" ? "error" : "pending"); value.textContent = result?.status === "error" ? result.error : result?.status === "loading" ? "번역하고 있어요…" : original ? "번역 대기 중입니다." : "아직 번역이 없어요."; }
+        content.append(value);
+        if (result?.status === "ready") {
+          const controls = element("div", "speech-controls");
+          const listen = element("button", "speech-button", "듣기");
+          listen.type = "button";
+          listen.dataset.code = language.code;
+          listen.dataset.action = "speak";
+          listen.dataset.speechCode = language.code;
+          listen.setAttribute("aria-describedby", `speech-hint-${language.code}`);
+          listen.addEventListener("click", () => speakTranslation(language, result.text));
+          const hint = element("span", "speech-hint");
+          hint.id = `speech-hint-${language.code}`;
+          const google = element("a", "google-link", "Google 번역에서 듣기 ↗");
+          const url = new URL("https://translate.google.com/");
+          url.search = new URLSearchParams({ sl: language.code === "fil" ? "tl" : language.code, tl: language.code === "ko" ? "en" : "ko", text: result.text, op: "translate" }).toString();
+          google.href = url.href;
+          google.target = "_blank";
+          google.rel = "noopener noreferrer";
+          google.dataset.code = language.code;
+          google.dataset.action = "google";
+          google.setAttribute("aria-label", `${language.name} Google 번역에서 듣기 (새 탭)`);
+          google.setAttribute("aria-describedby", "googleNotice");
+          google.addEventListener("click", stopSpeech);
+          controls.append(listen, hint, google);
+          content.append(controls);
+        }
+        if (result?.status === "error" && !activeRun) {
+          const retry = element("button", "text-button", "다시 번역하기");
+          retry.type = "button";
+          retry.dataset.code = language.code;
+          retry.dataset.action = "retry";
+          retry.addEventListener("click", () => translate([language.code]));
+          content.append(retry);
+        }
+        const saved = original && isSaved(language.code, original, result?.text);
+        const add = element("button", `add-button${saved ? " saved" : ""}`, saved ? "✓" : "+");
+        add.type = "button";
+        add.dataset.code = language.code;
+        add.dataset.action = "save";
+        add.disabled = result?.status !== "ready" || saved;
+        add.setAttribute("aria-label", saved ? `${language.name} 저장됨` : `${language.name} 번역을 히스토리에 추가`);
+        add.addEventListener("click", () => saveTranslation(language, result.text, original));
+        item.append(content, add);
+        list.append(item);
+      }
+      updateSpeechButtons();
+      if (focusedLanguage) {
+        const replacement = list.querySelector(`[data-code="${focusedLanguage}"][data-action="${focusedAction}"]:not(:disabled)`) || list.querySelector(`[data-code="${focusedLanguage}"]:not(:disabled)`) || list.querySelector("button:not(:disabled)") || $("closeDialog");
+        replacement.focus({ preventScroll: true });
+      }
+    }
+    function persistHistory(failureMessage = "브라우저 저장 공간을 사용할 수 없어 새 기록은 이번 방문 동안만 유지됩니다.") {
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); return true; }
+      catch { showToast(failureMessage); return false; }
+    }
+    function saveTranslation(language, translation, original) {
+      if (!original || isSaved(language.code, original, translation)) return;
+      history.unshift({ id: crypto.randomUUID(), code: language.code, country: selectedCountry?.code || selectedHistory?.country || language.country, source: original.text, sourceCode: original.code, translation, savedAt: new Date().toISOString() });
+      const persisted = persistHistory();
+      renderHistory();
+      renderDialog();
+      if (persisted) showToast(`${language.name} 번역을 히스토리에 저장했어요.`);
+    }
+    function renderHistory() {
+      $("historyCount").textContent = history.length;
+      $("historyEmpty").hidden = history.length > 0;
+      $("clearHistory").hidden = history.length === 0;
+      $("historyList").replaceChildren();
+      for (const record of history) {
+        const language = LANGUAGES.find(item => item.code === record.code);
+        const card = element("article", "history-card");
+        const top = element("div", "card-top");
+        const country = COUNTRIES.find(country => country.code === record.country);
+        top.append(element("span", "", `${flag(country.code)} ${country.name} · ${language.name}`));
+        const remove = element("button", "", "×");
+        remove.type = "button";
+        remove.setAttribute("aria-label", `${language.name} 기록 삭제`);
+        remove.addEventListener("click", () => {
+          const index = history.findIndex(item => item.id === record.id);
+          history = history.filter(item => item.id !== record.id);
+          persistHistory("화면에서는 삭제했지만 브라우저 저장소의 기록은 삭제하지 못했습니다. 완전히 지우려면 브라우저의 사이트 데이터를 삭제해 주세요."); renderHistory();
+          const next = $("historyList").children[Math.min(index, history.length - 1)];
+          if (next) next.querySelector("button").focus(); else $("sourceText").focus();
+        });
+        top.append(remove);
+        const word = element("button", "history-word", record.translation);
+        word.type = "button"; word.dir = "auto"; word.lang = language.code;
+        word.setAttribute("aria-haspopup", "dialog");
+        word.addEventListener("click", () => { stopSpeech(); selectedHistory = record; selectedCountry = null; renderDialog(); $("translationDialog").showModal(); });
+        const source = element("p", "history-source", record.source);
+        source.dir = "auto"; source.lang = record.sourceCode;
+        card.append(top, word, source);
+        $("historyList").append(card);
+      }
+    }
+
+    function updateProgress() {
+      const values = [...results.values()];
+      const ready = values.filter(result => result.status === "ready").length;
+      const errors = values.filter(result => result.status === "error").length;
+      $("languageCount").textContent = `${LANGUAGES.length}개 언어 · ${COUNTRIES.length}개 국가`;
+      $("progressText").textContent = !snapshot ? "번역할 문장을 입력하세요" : `${ready} / ${LANGUAGES.length}개 언어${activeRun ? " · 번역 중" : errors ? ` · ${errors}개 실패` : ready === LANGUAGES.length ? " · 완료" : " · 중지됨"}`;
+      $("cancelBtn").hidden = !activeRun;
+      $("retryBtn").hidden = !!activeRun || errors === 0;
+      $("translateBtn").disabled = !!activeRun || !$("sourceText").value.trim();
+      $("translateBtn").textContent = activeRun ? "번역 중…" : "번역하기 ↗";
+    }
+    function cancelTranslation() {
+      if (!activeRun) return;
+      activeRun.controller.abort();
+      activeRun = null;
+      for (const [code, result] of results) if (result.status === "loading" || result.status === "queued") results.set(code, { status: "error", error: "번역이 중지되었습니다. 다시 시도할 수 있어요." });
+      COUNTRIES.forEach(updateMarker);
+      updateProgress();
+      if ($("translationDialog").open && !selectedHistory) renderDialog();
+    }
+    function inputChanged() {
+      stopSpeech();
+      cancelTranslation();
+      snapshot = null; results.clear(); notice();
+      $("charCount").textContent = `${$("sourceText").value.length.toLocaleString()} / 1,000`;
+      $("detectedLanguage").textContent = $("sourceText").value.trim() && $("sourceLang").value === "auto" ? (sourceCode() === "ko" ? "한국어" : "영어") : "";
+      COUNTRIES.forEach(updateMarker); updateProgress();
+      if ($("translationDialog").open && !selectedHistory) renderDialog();
+    }
+    function buildPrompt(text, source, target) {
+      const from = source === "ko" ? "Korean" : "English";
+      return `You are a professional ${from} (${source}) to ${target.english} (${target.code}) translator. Your goal is to accurately convey the meaning and nuances of the original ${from} text while adhering to ${target.english} grammar, vocabulary, and cultural sensitivities.\n\nProduce only the ${target.english} translation, without any additional explanations or commentary. Please translate the following ${from} text into ${target.english}:\n\n${text}`;
+    }
+    async function translate(onlyCodes = null) {
+      const text = $("sourceText").value.trim();
+      if (!text || activeRun) return;
+      stopSpeech();
+      notice();
+      const original = { text, code: sourceCode() };
+      if (!onlyCodes || !snapshot || snapshot.text !== text || snapshot.code !== original.code) {
+        results = new Map(LANGUAGES.map(language => [language.code, { status: "queued" }]));
+        onlyCodes = null;
+      }
+      snapshot = original;
+      const run = { controller: new AbortController() };
+      activeRun = run;
+      const targets = LANGUAGES.filter(language => !onlyCodes || onlyCodes.includes(language.code));
+      for (const target of targets) results.set(target.code, target.code === original.code ? { status: "ready", text } : { status: "queued" });
+      COUNTRIES.forEach(updateMarker); updateProgress();
+      if ($("translationDialog").open && !selectedHistory) renderDialog();
+      try {
+        const connected = await checkConnection();
+        if (activeRun !== run) return;
+        if (!connected) {
+          for (const target of targets) if (target.code !== original.code) results.set(target.code, { status: "error", error: "Ollama 또는 모델 연결을 확인한 뒤 다시 시도해 주세요." });
+          notice("번역을 시작할 수 없습니다. 상단의 Ollama 연결 도움말을 확인해 주세요.");
+          return;
+        }
+        for (const target of targets) {
+          if (activeRun !== run) return;
+          if (target.code === original.code) continue;
+          results.set(target.code, { status: "loading" });
+          COUNTRIES.forEach(updateMarker);
+          if ($("translationDialog").open && !selectedHistory) renderDialog();
+          const timeout = setTimeout(() => run.controller.abort("timeout"), 180000);
+          let fatal = false;
+          try {
+            const response = await fetch(`${OLLAMA_URL}/api/chat`, {
+              method: "POST", headers: { "Content-Type": "application/json" }, signal: run.controller.signal,
+              body: JSON.stringify({ model: activeModel, messages: [{ role: "user", content: buildPrompt(text, original.code, target) }], stream: false })
+            });
+            if (!response.ok) {
+              fatal = response.status === 404 || response.status === 401 || response.status === 403;
+              throw new Error(response.status === 404 ? `모델을 찾을 수 없습니다. ollama pull ${activeModel}` : `번역 요청 실패 (HTTP ${response.status}): ${(await response.text()).slice(0, 250)}`);
+            }
+            const data = await response.json();
+            const translated = data?.message?.content;
+            if (typeof translated !== "string" || !translated.trim()) throw new Error("모델이 빈 번역을 반환했습니다. 다시 시도해 주세요.");
+            if (activeRun !== run) return;
+            results.set(target.code, { status: "ready", text: translated.trim() });
+          } catch (error) {
+            if (activeRun !== run) return;
+            fatal ||= error instanceof TypeError || run.controller.signal.aborted;
+            const message = run.controller.signal.aborted ? "번역 시간이 초과되었습니다. 더 짧은 문장으로 다시 시도해 주세요." : error.message;
+            results.set(target.code, { status: "error", error: message });
+            if (fatal) {
+              for (const pending of targets) if (results.get(pending.code)?.status === "queued") results.set(pending.code, { status: "error", error: "연결 또는 모델 오류로 번역을 중지했습니다. 다시 시도해 주세요." });
+              notice(message);
+              if (error instanceof TypeError) { $("connectionHelp").hidden = false; $("connectionHelp").open = true; $("connectionError").textContent = "Ollama 연결이 끊겼거나 브라우저가 요청을 차단했습니다. Ollama 실행 상태와 CORS 설정을 확인해 주세요."; }
+            }
+          } finally { clearTimeout(timeout); }
+          COUNTRIES.forEach(updateMarker); updateProgress();
+          if ($("translationDialog").open && !selectedHistory) renderDialog();
+          if (fatal) break;
+        }
+      } finally {
+        if (activeRun === run) {
+          activeRun = null;
+          COUNTRIES.forEach(updateMarker); updateProgress();
+          if ($("translationDialog").open && !selectedHistory) renderDialog();
+        }
+      }
+    }
+    async function checkConnection() {
+      if (connectionCheck) return connectionCheck;
+      connectionCheck = (async () => {
+        $("statusText").textContent = "Ollama 확인 중";
+        $("connectionBtn").disabled = true;
+        try {
+          const response = await fetch(`${OLLAMA_URL}/api/tags`, { signal: AbortSignal.timeout(5000), cache: "no-store" });
+          if (!response.ok) throw new Error(`Ollama 응답 오류 (HTTP ${response.status})`);
+          const data = await response.json();
+          const names = Array.isArray(data.models) ? data.models.map(model => model.name).filter(name => typeof name === "string") : [];
+          const model = names.find(name => name === MODEL) || names.find(name => name.split(":")[0] === MODEL.split(":")[0]);
+          if (!model) throw new Error(`TranslateGemma 모델이 없습니다. 터미널에서 ollama pull ${MODEL} 명령을 실행하세요.`);
+          activeModel = model;
+          $("statusDot").classList.add("connected");
+          $("statusText").textContent = "로컬 번역 준비됨";
+          $("modelStatus").textContent = model;
+          $("connectionHelp").hidden = true;
+          return true;
+        } catch (error) {
+          $("statusDot").classList.remove("connected");
+          $("statusText").textContent = "Ollama 연결 확인 필요";
+          $("modelStatus").textContent = "";
+          $("connectionError").textContent = error instanceof TypeError || error.name === "TimeoutError" ? `Ollama에 접근할 수 없습니다 (${OLLAMA_URL}). Ollama가 실행되지 않았거나 CORS 또는 브라우저의 로컬 네트워크 권한 설정에 의해 차단되었을 수 있습니다.` : error.message;
+          $("connectionHelp").hidden = false;
+          $("connectionHelp").open = true;
+          return false;
+        } finally { $("connectionBtn").disabled = false; }
+      })();
+      try { return await connectionCheck; } finally { connectionCheck = null; }
+    }
+
+    try {
+      const stored = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+      if (Array.isArray(stored)) history = stored.filter(item => item && typeof item.id === "string" && LANGUAGES.some(language => language.code === item.code) && ["ko", "en"].includes(item.sourceCode) && typeof item.source === "string" && typeof item.translation === "string" && item.translation.trim()).map(item => ({
+        ...item,
+        // Existing saved entries predate country selection; keep their original default locale.
+        country: COUNTRIES.some(country => country.code === item.country && country.languages.some(language => language.code === item.code)) ? item.country : LANGUAGES.find(language => language.code === item.code).country
+      }));
+    } catch { showToast("저장된 기록을 불러올 수 없습니다. 새 기록은 이번 방문에서 사용할 수 있어요."); }
+    const allowedOrigin = location.protocol === "file:" ? "http://localhost:8000" : location.origin;
+    $("macCors").textContent = `launchctl setenv OLLAMA_ORIGINS "${allowedOrigin}"`;
+    $("windowsCors").textContent = `setx OLLAMA_ORIGINS "${allowedOrigin}"`;
+    $("translateForm").addEventListener("submit", event => { event.preventDefault(); translate(); });
+    $("sourceText").addEventListener("input", inputChanged);
+    $("sourceLang").addEventListener("change", inputChanged);
+    $("sourceText").addEventListener("keydown", event => { if ((event.metaKey || event.ctrlKey) && event.key === "Enter" && !event.isComposing) { event.preventDefault(); translate(); } });
+    $("cancelBtn").addEventListener("click", cancelTranslation);
+    $("retryBtn").addEventListener("click", () => translate([...results].filter(([, result]) => result.status === "error").map(([code]) => code)));
+    $("connectionBtn").addEventListener("click", () => checkConnection());
+    for (const button of document.querySelectorAll("[data-region]")) button.addEventListener("click", () => {
+      region = button.dataset.region;
+      for (const tab of document.querySelectorAll("[data-region]")) tab.setAttribute("aria-pressed", String(tab === button));
+      renderMap();
+      $("mapScroll").scrollLeft = Math.max(0, ($("mapStage").clientWidth - $("mapScroll").clientWidth) / 2);
+    });
+    $("closeDialog").addEventListener("click", () => $("translationDialog").close());
+    $("translationDialog").addEventListener("close", stopSpeech);
+    $("translationDialog").addEventListener("cancel", stopSpeech);
+    window.addEventListener("pagehide", stopSpeech);
+    speech?.addEventListener("voiceschanged", updateSpeechButtons);
+    speech?.getVoices();
+    $("translationDialog").addEventListener("click", event => {
+      const rect = $("translationDialog").getBoundingClientRect();
+      if (event.target === $("translationDialog") && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) $("translationDialog").close();
+    });
+    $("clearHistory").addEventListener("click", () => {
+      if (!confirm("저장한 언어 히스토리를 모두 삭제할까요?")) return;
+      history = []; persistHistory("화면에서는 삭제했지만 브라우저 저장소의 기록은 삭제하지 못했습니다. 완전히 지우려면 브라우저의 사이트 데이터를 삭제해 주세요."); renderHistory(); $("sourceText").focus();
+    });
+    new ResizeObserver(renderMap).observe($("mapStage"));
+    renderMap(); renderHistory(); inputChanged(); checkConnection();
+  </script>
+</body>
+</html>
