@@ -168,9 +168,9 @@
       <summary>Ollama 연결 도움말</summary>
       <p id="connectionError"></p>
       <p>Ollama를 실행한 뒤 모델을 설치하세요: <code>ollama pull translategemma:4b</code></p>
-      <p>파일을 직접 열었다면 프로젝트 폴더에서 <code>python3 -m http.server 8000</code>을 실행하고 <a href="http://localhost:8000">localhost:8000</a>에 접속하세요.</p>
-      <p>CORS 오류가 계속되면 현재 페이지의 출처만 허용하고 Ollama를 완전히 종료한 뒤 다시 실행하세요.</p>
-      <p>macOS: <code id="macCors"></code></p><p>Windows: <code id="windowsCors"></code></p>
+      <p id="corsHelp"></p>
+      <p>macOS: Ollama를 완전히 종료하고 터미널에서 <code id="macCors"></code>를 실행한 뒤 Ollama 앱을 다시 여세요.</p>
+      <p>Windows: 작업 표시줄의 Ollama를 종료하고 사용자 환경 변수에 <code>OLLAMA_ORIGINS</code>를 추가하거나 명령 프롬프트에서 <code id="windowsCors"></code>를 실행한 뒤 시작 메뉴에서 Ollama를 다시 여세요.</p>
     </details>
     <p class="notice" id="notice" role="status" hidden></p>
     <section class="atlas" aria-label="세계 번역 지도">
@@ -772,7 +772,9 @@
         country: COUNTRIES.some(country => country.code === item.country && country.languages.some(language => language.code === item.code)) ? item.country : LANGUAGES.find(language => language.code === item.code).country
       }));
     } catch { showToast("저장된 기록을 불러올 수 없습니다. 새 기록은 이번 방문에서 사용할 수 있어요."); }
-    const allowedOrigin = location.protocol === "file:" ? "http://localhost:8000" : location.origin;
+    const isDirectFile = location.protocol === "file:";
+    const allowedOrigin = isDirectFile ? "*" : location.origin;
+    $("corsHelp").textContent = isDirectFile ? "서버 없이 HTML 파일을 직접 연 상태에서 CORS 오류가 발생했다면 아래와 같이 Ollama Origin을 허용하세요. *는 모든 Origin을 허용하므로 신뢰할 수 있는 로컬 환경에서만 사용하세요." : "CORS 오류가 발생했다면 현재 페이지의 Origin만 허용하세요.";
     $("macCors").textContent = `launchctl setenv OLLAMA_ORIGINS "${allowedOrigin}"`;
     $("windowsCors").textContent = `setx OLLAMA_ORIGINS "${allowedOrigin}"`;
     $("translateForm").addEventListener("submit", event => { event.preventDefault(); translate(); });

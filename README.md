@@ -47,13 +47,15 @@
 ollama pull translategemma:4b
 ```
 
-2. 이 프로젝트 폴더에서 Python 3 정적 서버를 실행합니다.
+2. `index.html` 파일을 브라우저에서 직접 엽니다. 별도 웹 서버는 필요하지 않습니다.
+
+브라우저가 로컬 파일의 API 요청을 제한한다면 정적 서버를 대신 사용할 수 있습니다.
 
 ```bash
 python3 -m http.server 8000
 ```
 
-3. 브라우저에서 <http://localhost:8000>을 엽니다. HTML 파일을 직접 여는 `file://` 방식은 피하세요.
+이 경우 브라우저에서 <http://localhost:8000>을 엽니다.
 
 기본 API 주소는 `http://localhost:11434`입니다. 기본 모델은 `translategemma:4b`이며, 없으면 설치된 다른 `translategemma` 계열 모델을 사용합니다.
 
@@ -78,19 +80,33 @@ python3 -m http.server 8000
 
 Ollama 실행 여부와 모델 설치를 먼저 확인하세요. 터미널로 서버를 실행한다면 `ollama serve`를 사용합니다. 이미 Ollama 앱이 실행 중이면 서버를 중복 실행하지 마세요.
 
-브라우저 콘솔에 CORS 오류가 있으면 Ollama의 `OLLAMA_ORIGINS`를 `http://localhost:8000`으로 설정하고 Ollama를 완전히 종료한 뒤 다시 실행하세요. macOS 앱에서는 다음 명령을 사용합니다.
+서버 없이 `index.html`을 직접 열었을 때 브라우저 콘솔에 CORS 오류가 있으면 `OLLAMA_ORIGINS`를 `*`로 설정합니다. `*`는 모든 Origin을 허용하므로 신뢰할 수 있는 로컬 환경에서만 사용하세요.
+
+macOS에서는 Ollama 앱을 완전히 종료하고 터미널에서 다음 명령을 실행한 뒤 Ollama 앱을 다시 엽니다.
 
 ```bash
-launchctl setenv OLLAMA_ORIGINS "http://localhost:8000"
+launchctl setenv OLLAMA_ORIGINS "*"
 ```
 
-Windows에서는 같은 이름과 값의 사용자 환경 변수를 설정한 뒤 Ollama를 다시 실행합니다. 터미널에서 직접 실행할 때는 다음과 같이 설정할 수 있습니다.
+Windows에서는 작업 표시줄의 Ollama 아이콘을 눌러 앱을 종료한 뒤 다음 순서로 설정합니다.
+
+1. Windows 설정 또는 제어판에서 `환경 변수`를 검색합니다.
+2. **사용자 환경 변수 편집**에서 이름이 `OLLAMA_ORIGINS`, 값이 `*`인 변수를 추가합니다.
+3. 적용한 뒤 시작 메뉴에서 Ollama를 다시 실행합니다.
+
+명령 프롬프트에서는 사용자 환경 변수를 다음과 같이 추가할 수도 있습니다. 명령 실행 후 Ollama를 다시 시작해야 적용됩니다.
+
+```bat
+setx OLLAMA_ORIGINS "*"
+```
+
+터미널에서 `ollama serve`를 직접 실행할 때는 해당 프로세스에 환경 변수를 전달할 수도 있습니다.
 
 ```bash
-OLLAMA_ORIGINS="http://localhost:8000" ollama serve
+OLLAMA_ORIGINS="*" ollama serve
 ```
 
-다른 호스트나 포트를 사용한다면 허용 origin도 실제 페이지 주소에 맞추세요. 연결 실패만으로 CORS 문제라고 단정할 수는 없습니다.
+정적 서버를 사용한다면 `*` 대신 실제 페이지 Origin(예: `http://localhost:8000`)만 허용하는 편이 안전합니다. 연결 실패만으로 CORS 문제라고 단정할 수는 없습니다.
 
 ## 저장과 개인정보
 
